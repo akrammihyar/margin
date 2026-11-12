@@ -203,3 +203,15 @@ public final class Store: @unchecked Sendable {
         }
     }
 }
+
+extension Store {
+    /// The task that `ref` names, with its 1-based number.
+    public func task(_ ref: TaskRef, on day: DayID) throws -> (number: Int, item: TaskItem) {
+        let file = try load(day)
+        let line = try resolve(ref, in: file)
+        var number = 0
+        for i in 0...line { if case .task = file.lines[i] { number += 1 } }
+        guard case .task(let item) = file.lines[line] else { throw MarginError.notFound("task") }
+        return (number, item)
+    }
+}
