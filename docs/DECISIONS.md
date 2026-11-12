@@ -16,4 +16,5 @@ A dated list of decisions that are not in the design document, each with its rea
 | 2026-11-12 | The MCP `task` argument has the type string ("2" or text). | A union type in the tool schema is not accepted by all clients. |
 | 2026-11-12 | The app has a hidden main menu with an Edit menu. | AppKit sends copy, paste, and undo through menu items, also in an accessory app. |
 | 2026-11-12 | Known limits of 1.0: no file lock for parallel writers (last writer wins); text that ends with `@now` is read as a tag; an indented task line loses its indentation; a click on a row does not select it for the keyboard. | Small, and recorded for a later version. |
+| 2026-11-12 | The edge tab is a floating capsule with an orange outline, 5 pt from the edge (owner decision, design C). | The glass tab was dark and translucent, and the owner could not find it. The window still touches the edge, so the pointer at the edge opens the list. |
 | 2026-11-12 | A fourth target `MarginCommands` holds the CLI and MCP logic. | The logic can be tested as a library; the `margin` executable is a thin `main`. |

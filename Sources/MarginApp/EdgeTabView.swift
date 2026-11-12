@@ -13,11 +13,18 @@ final class TabState {
 }
 
 enum TabMetrics {
-    static let thinThickness: CGFloat = 8
+    /// The capsule floats this far from the screen edge. The window covers the space, so the
+    /// pointer at the very edge of the screen still touches the tab.
+    static let inset: CGFloat = 5
+    static let thinCapsule: CGFloat = 10
+    static let pillCapsule: CGFloat = 24
+    static let thinThickness: CGFloat = thinCapsule + inset
+    static let pillThickness: CGFloat = pillCapsule + inset
     static let thinLength: CGFloat = 64
-    static let pillThickness: CGFloat = 24
     static let maxCharacters = 24
-    static let font = NSFont.systemFont(ofSize: 11, weight: .medium)
+    static let font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+    /// The colour of the tab outline.
+    static let orange = Color(red: 1.0, green: 0.54, blue: 0.12)
 
     static func shortened(_ text: String) -> String {
         text.count > maxCharacters ? String(text.prefix(maxCharacters)).trimmingCharacters(in: .whitespaces) + "…" : text
@@ -30,17 +37,28 @@ enum TabMetrics {
     }
 }
 
-/// The tab on the screen edge. Thin when there is no focus task; a pill with the task name when there is.
+/// The tab near the screen edge: a floating capsule with an orange outline.
+/// Thin when there is no focus task; wider, with the task name, when there is.
 struct EdgeTabView: View {
     let state: TabState
+    @Environment(\.colorScheme) private var scheme
 
-    private var shape: UnevenRoundedRectangle {
-        let r: CGFloat = state.text == nil ? 5 : 11
+    private var fill: Color {
+        if state.hovering { return TabMetrics.orange.opacity(0.35) }
+        return scheme == .dark ? Color.black.opacity(0.55) : Color.white.opacity(0.7)
+    }
+
+    private var textColor: Color {
+        scheme == .dark ? Color(red: 1.0, green: 0.72, blue: 0.42) : Color(red: 0.72, green: 0.33, blue: 0.0)
+    }
+
+    /// The side of the window that touches the screen edge.
+    private var edgeSide: Edge.Set {
         switch state.edge {
-        case .right: return UnevenRoundedRectangle(topLeadingRadius: r, bottomLeadingRadius: r, bottomTrailingRadius: 0, topTrailingRadius: 0, style: .continuous)
-        case .left: return UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 0, bottomTrailingRadius: r, topTrailingRadius: r, style: .continuous)
-        case .top: return UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: r, bottomTrailingRadius: r, topTrailingRadius: 0, style: .continuous)
-        case .bottom: return UnevenRoundedRectangle(topLeadingRadius: r, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: r, style: .continuous)
+        case .left: return .leading
+        case .right: return .trailing
+        case .top: return .top
+        case .bottom: return .bottom
         }
     }
 
@@ -49,18 +67,20 @@ struct EdgeTabView: View {
             if let text = state.text {
                 Text(TabMetrics.shortened(text))
                     .font(Font(TabMetrics.font))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(textColor)
                     .lineLimit(1)
                     .fixedSize()
                     .rotationEffect(.degrees(state.edge == .left ? -90 : (state.edge == .right ? 90 : 0)))
             } else if state.showDot {
-                Circle().fill(.tint).frame(width: 4, height: 4)
+                Circle().fill(TabMetrics.orange).frame(width: 4, height: 4)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.primary.opacity(state.hovering ? 0.18 : (state.text == nil ? 0.10 : 0)))
-        .clipShape(shape)
-        .glassEffect(.regular, in: shape)
+        .background(Capsule(style: .continuous).fill(fill))
+        .overlay(Capsule(style: .continuous).strokeBorder(TabMetrics.orange, lineWidth: 1.5))
+        .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
+        .padding(edgeSide, TabMetrics.inset)
+        .animation(.easeOut(duration: 0.12), value: state.hovering)
         .accessibilityElement()
         .accessibilityLabel(state.text.map { "Margin. Focus task: \($0)" } ?? "Margin task list")
         .accessibilityAddTraits(.isButton)

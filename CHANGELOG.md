@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 — 2026-11-12
+
+- The edge tab is now a floating capsule with an orange outline, so that it is easy to find.
+
 ## 1.0.0 — 2026-11-12
 
 First version.
