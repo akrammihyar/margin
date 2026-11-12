@@ -42,6 +42,7 @@ final class TrackingHostingView<Content: View>: NSHostingView<Content> {
         area = new
     }
 
-    override func mouseEntered(with event: NSEvent) { onPointer?(true) }
-    override func mouseExited(with event: NSEvent) { onPointer?(false) }
+    // Call super: NSHostingView uses these events for SwiftUI `.onHover`.
+    override func mouseEntered(with event: NSEvent) { super.mouseEntered(with: event); onPointer?(true) }
+    override func mouseExited(with event: NSEvent) { super.mouseExited(with: event); onPointer?(false) }
 }

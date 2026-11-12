@@ -45,10 +45,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         tab.onPointer = { [weak self] inside in
             if inside { self?.hover.pointerEntered(opens: true) } else { self?.hover.pointerExited() }
         }
-        tab.onClick = { [weak self] in
-            self?.hover.cancel()
-            self?.showPanel(focusInput: false)
-        }
+        tab.onPress = { [weak self] in self?.hover.cancel() }   // a press can start a drag: do not open under it
+        tab.onClick = { [weak self] in self?.togglePanel(focusInput: false) }
         tab.onDragBegan = { [weak self] in
             self?.hover.cancel()
             if self?.panel.isPinned == false { self?.panel.hide() }
@@ -56,15 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panel.onPointer = { [weak self] inside in
             if inside { self?.hover.pointerEntered(opens: false) } else { self?.hover.pointerExited() }
         }
-        panel.onVisibilityChange = { [weak self] visible in
-            guard let self else { return }
-            self.tab.setPanelOpen(visible && !self.panel.isPinned)
-        }
         panel.anchorProvider = { [weak self] in self!.currentAnchor() }
         model.onStateChange = { [weak self] in self?.tab.refreshLayout(animated: true) }
 
         statusItem = StatusItemController(
-            onTogglePanel: { [weak self] in self?.togglePanel(focusInput: false) },
+            onTogglePanel: { [weak self] in self?.togglePanel(focusInput: true) },
             onOpenSettings: { [weak self] in self?.settings.show() },
             onToggleTab: { [weak self] in
                 guard let self else { return }
@@ -91,8 +85,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         _ = registerHotKey(code: Settings.hotKeyCode, modifiers: Settings.hotKeyModifiers, display: Settings.hotKeyDisplay)
         panel.restorePinned(anchor: currentAnchor())
+        installMainMenu()
         if measuring { print("MARGIN_READY"); fflush(stdout) }
         installDebugChannel()
+    }
+
+    /// An accessory app shows no menu bar, but AppKit sends Command-V, Command-C, Command-Z
+    /// and the other editing shortcuts through the Edit menu. Without this menu, paste does not work.
+    private func installMainMenu() {
+        let main = NSMenu()
+        let appItem = NSMenuItem()
+        let appMenu = NSMenu()
+        appMenu.addItem(NSMenuItem(title: "Quit \(AppInfo.name)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        appItem.submenu = appMenu
+        main.addItem(appItem)
+
+        let editItem = NSMenuItem()
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(NSMenuItem(title: "Undo", action: Selector(("undo:")), keyEquivalent: "z"))
+        let redo = NSMenuItem(title: "Redo", action: Selector(("redo:")), keyEquivalent: "z")
+        redo.keyEquivalentModifierMask = [.command, .shift]
+        edit.addItem(redo)
+        edit.addItem(.separator())
+        edit.addItem(NSMenuItem(title: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
+        edit.addItem(NSMenuItem(title: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
+        edit.addItem(NSMenuItem(title: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
+        edit.addItem(NSMenuItem(title: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
+        editItem.submenu = edit
+        main.addItem(editItem)
+        NSApp.mainMenu = main
     }
 
     /// A test channel, active only when the environment variable `MARGIN_DEBUG` is set.
@@ -147,14 +168,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Where an unpinned panel attaches: the tab, or the menu bar icon when the tab is off.
     private func currentAnchor() -> PanelController.Anchor {
-        if tab.isEnabled {
-            return .init(rect: tab.tabFrame, edge: tab.edge, visible: tab.screen.visibleFrame)
+        if tab.isEnabled, let screen = tab.screen {
+            // The panel opens next to the tab, and the tab stays in view.
+            return .init(rect: tab.tabFrame, edge: tab.edge, visible: screen.visibleFrame, gap: tab.thickness + 6)
         }
         if let a = statusItem?.anchor {
             return .init(rect: a.rect, edge: .top, visible: a.screen.visibleFrame)
         }
-        let screen = NSScreen.main ?? NSScreen.screens[0]
-        return .init(rect: CGRect(x: screen.visibleFrame.maxX - 40, y: screen.visibleFrame.maxY, width: 24, height: 24), edge: .top, visible: screen.visibleFrame)
+        // No display is connected for a moment (for example, the lid is closed): use a safe default.
+        let visible = (NSScreen.main ?? NSScreen.screens.first)?.visibleFrame ?? CGRect(x: 0, y: 0, width: 1440, height: 900)
+        return .init(rect: CGRect(x: visible.maxX - 40, y: visible.maxY, width: 24, height: 24), edge: .top, visible: visible)
     }
 
     private func showPanel(focusInput: Bool) {

@@ -50,7 +50,8 @@ public struct DayFile: Equatable, Sendable {
             if line.hasSuffix("\r") { line.removeLast() }
             guard var item = parseTaskLine(line) else { return .other(line) }
             if item.isFocus {
-                if focusSeen { item.isFocus = false } else { focusSeen = true }
+                // Only an open task can have the focus, and only the first one.
+                if focusSeen || item.state != .open { item.isFocus = false } else { focusSeen = true }
             }
             return .task(item)
         }

@@ -13,7 +13,7 @@ public final class NotesStore: @unchecked Sendable {
     private let clock: @Sendable () -> Date
     private let calendar: Calendar
 
-    public init(root: URL = Store.defaultRoot(), clock: @escaping @Sendable () -> Date = { Date() }, calendar: Calendar = .current) {
+    public init(root: URL = Store.defaultRoot(), clock: @escaping @Sendable () -> Date = { Date() }, calendar: Calendar = .autoupdatingCurrent) {
         self.root = root; self.clock = clock; self.calendar = calendar
     }
 

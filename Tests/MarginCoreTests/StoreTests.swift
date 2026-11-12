@@ -98,3 +98,16 @@ import Testing
     let s = makeStore(); for d in ["2026-11-08","2026-11-10","2026-11-12"] { try s.add("t", to: DayID(d)!) }
     #expect(try s.history(from: DayID("2026-11-09")!, to: DayID("2026-11-12")!).map(\.day.description) == ["2026-11-10","2026-11-12"])
 }
+
+// Findings of the 1.0 review
+
+@Test func focusTagOnDoneTaskDoesNotTakeTheFocus() {
+    let f = DayFile.parse("- [x] old @now\n- [ ] real @now\n", day: DayID("2026-11-12")!)
+    #expect(f.tasks.map(\.isFocus) == [false, true])
+}
+@Test func onlyOpenTasksCanMove() throws {
+    let s = makeStore(); try s.add("a", to: s.today()); try s.setDone(.number(1), true, on: s.today())
+    #expect(throws: MarginError.self) { try s.move(.number(1), from: s.today(), to: DayID("2026-11-13")!) }
+    #expect(try s.load(DayID("2026-11-13")!).tasks.isEmpty)
+    #expect(try s.load(s.today()).tasks[0].state == .done)
+}

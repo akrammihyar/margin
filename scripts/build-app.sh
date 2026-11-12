@@ -3,7 +3,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-swift build -c release 2>&1 | grep -v "libSwiftScan" || true
+swift build -c release 2>&1 | grep -v "libSwiftScan"
+if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+  echo "The build failed." >&2
+  exit 1
+fi
 BIN="$(swift build -c release --show-bin-path 2>/dev/null | tail -1)"
 
 APP="build/Margin.app"

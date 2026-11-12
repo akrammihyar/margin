@@ -8,7 +8,7 @@ public final class Store: @unchecked Sendable {
     public let calendar: Calendar
     private let clock: @Sendable () -> Date
 
-    public init(root: URL = Store.defaultRoot(), clock: @escaping @Sendable () -> Date = { Date() }, calendar: Calendar = .current) {
+    public init(root: URL = Store.defaultRoot(), clock: @escaping @Sendable () -> Date = { Date() }, calendar: Calendar = .autoupdatingCurrent) {
         self.root = root
         self.clock = clock
         self.calendar = calendar
@@ -126,6 +126,7 @@ public final class Store: @unchecked Sendable {
         var source = try load(from)
         let line = try resolve(ref, in: source)
         guard case .task(var item) = source.lines[line] else { return }
+        guard item.state == .open else { throw MarginError.notFound("an open task to move. Only open tasks can move") }
         // Write the target first: a failure between the two writes then gives a duplicate, not a loss.
         try add(item.text, to: to)
         item.state = .moved

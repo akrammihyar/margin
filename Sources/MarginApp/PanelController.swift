@@ -10,6 +10,8 @@ final class PanelController: NSObject, NSWindowDelegate {
         var rect: CGRect
         var edge: ScreenEdge
         var visible: CGRect
+        /// Distance from the screen edge to the panel.
+        var gap: CGFloat = PanelMetrics.edgeGap
     }
 
     private let model: AppModel
@@ -70,7 +72,8 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func show(anchor newAnchor: Anchor, focusInput: Bool) {
         closing = false
-        if !isPinned || anchor == nil { anchor = newAnchor }
+        // Always refresh: a pinned panel uses the anchor as its fallback screen.
+        anchor = newAnchor
         rebuildContent(maxHeight: EdgeGeometry.maxPanelHeight(visible: anchor!.visible))
         let wasVisible = window.isVisible
         model.panelEdge = isPinned ? nil : anchor!.edge
@@ -86,7 +89,7 @@ final class PanelController: NSObject, NSWindowDelegate {
         }
         if focusInput {
             window.makeKeyAndOrderFront(nil)
-            model.focusRequest += 1
+            model.requestAddFocus()
         }
     }
 
@@ -111,8 +114,10 @@ final class PanelController: NSObject, NSWindowDelegate {
     /// Esc: close, unless the panel is pinned. A pinned panel gives the keyboard back.
     private func escape() {
         if isPinned {
+            // Give the keyboard back to the app that the owner was in.
             window.makeFirstResponder(nil)
-            window.resignKey()
+            window.orderOut(nil)
+            window.orderFrontRegardless()
         } else {
             hide()
         }
@@ -135,7 +140,7 @@ final class PanelController: NSObject, NSWindowDelegate {
             panel = EdgeGeometry.clamp(CGRect(x: topLeft.x, y: topLeft.y - size.height, width: size.width, height: size.height),
                                        into: screenVisibleFrame(containing: topLeft) ?? anchor.visible)
         } else {
-            panel = EdgeGeometry.panelFrame(tab: anchor.rect, edge: anchor.edge, size: size, in: anchor.visible, gap: PanelMetrics.edgeGap)
+            panel = EdgeGeometry.panelFrame(tab: anchor.rect, edge: anchor.edge, size: size, in: anchor.visible, gap: anchor.gap)
         }
         return panel.insetBy(dx: -PanelMetrics.pad, dy: -PanelMetrics.pad)
     }
@@ -153,7 +158,7 @@ final class PanelController: NSObject, NSWindowDelegate {
     }
 
     func displaysChanged() {
-        if !isPinned, let provider = anchorProvider { anchor = provider() }
+        if let provider = anchorProvider { anchor = provider() }
         layout(animated: false)
     }
 
@@ -202,7 +207,7 @@ final class PanelController: NSObject, NSWindowDelegate {
 
     func focusInput() {
         window.makeKeyAndOrderFront(nil)
-        model.focusRequest += 1
+        model.requestAddFocus()
     }
 
     func windowDidResignKey(_ notification: Notification) {

@@ -25,18 +25,7 @@ struct ReviewBanner: View {
                 .accessibilityLabel("\(model.reviewRows.count) open tasks from \(model.shortTitle(day)). \(expanded ? "Hide" : "Review")")
 
                 if expanded {
-                    ForEach(model.reviewRows) { row in
-                        HStack(spacing: 4) {
-                            Text(row.item.text)
-                                .font(.system(size: 12))
-                                .lineLimit(2)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            action("arrow.down.circle", "Add to Today") { model.carry(row) }
-                            action("archivebox", "Archive") { model.archive(row) }
-                            action("trash", "Delete") { model.removeFromReview(row) }
-                        }
-                        .transition(.opacity.combined(with: .move(edge: .leading)))
-                    }
+                    reviewRows
                     HStack {
                         Button("Add All") { model.carryAll() }
                         Button("Archive All") { model.archiveAll() }
@@ -49,6 +38,32 @@ struct ReviewBanner: View {
             .padding(9)
             .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             .transition(.opacity)
+        }
+    }
+
+    /// A long review list scrolls, so that the panel stays on the screen.
+    @ViewBuilder private var reviewRows: some View {
+        if model.reviewRows.count > 5 {
+            ScrollView { rowStack }.frame(height: 150)
+        } else {
+            rowStack
+        }
+    }
+
+    private var rowStack: some View {
+        VStack(spacing: 6) {
+            ForEach(model.reviewRows) { row in
+                        HStack(spacing: 4) {
+                            Text(row.item.text)
+                                .font(.system(size: 12))
+                                .lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            action("arrow.down.circle", "Add to Today") { model.carry(row) }
+                            action("archivebox", "Archive") { model.archive(row) }
+                            action("trash", "Delete") { model.removeFromReview(row) }
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .leading)))
+            }
         }
     }
 

@@ -71,6 +71,7 @@ struct SettingsView: View {
                     .onChange(of: sound) { _, v in Settings.soundEnabled = v }
                 Toggle("Start at login", isOn: $login)
                     .onChange(of: login) { _, v in
+                        guard v != LoginItem.isEnabled else { return }   // set back after a failure: do nothing
                         do { try LoginItem.setEnabled(v); loginError = nil }
                         catch { loginError = error.localizedDescription; login = LoginItem.isEnabled }
                     }
@@ -94,10 +95,7 @@ struct SettingsView: View {
                             do {
                                 let link = try CLIInstaller.install()
                                 cliPath = link.path
-                                let dir = link.deletingLastPathComponent()
-                                cliMessage = CLIInstaller.pathContains(dir)
-                                    ? "Installed at \(link.path)"
-                                    : "Installed at \(link.path). Add \(dir.path) to your PATH."
+                                cliMessage = "Installed at \(link.path). If the terminal does not find `margin`, add \(link.deletingLastPathComponent().path) to your PATH."
                             } catch {
                                 cliMessage = error.localizedDescription
                             }

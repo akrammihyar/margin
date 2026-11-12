@@ -59,6 +59,7 @@ struct EdgeTabView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.primary.opacity(state.hovering ? 0.18 : (state.text == nil ? 0.10 : 0)))
+        .clipShape(shape)
         .glassEffect(.regular, in: shape)
         .accessibilityElement()
         .accessibilityLabel(state.text.map { "Margin. Focus task: \($0)" } ?? "Margin task list")

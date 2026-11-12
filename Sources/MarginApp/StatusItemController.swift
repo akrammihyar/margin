@@ -44,6 +44,10 @@ final class StatusItemController: NSObject {
         tab.target = self
         tab.state = Settings.tabEnabled ? .on : .off
         menu.addItem(tab)
+        let login = NSMenuItem(title: "Start at Login", action: #selector(toggleLogin), keyEquivalent: "")
+        login.target = self
+        login.state = LoginItem.isEnabled ? .on : .off
+        menu.addItem(login)
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
@@ -55,5 +59,6 @@ final class StatusItemController: NSObject {
     }
 
     @objc private func toggleTab() { onToggleTab() }
+    @objc private func toggleLogin() { try? LoginItem.setEnabled(!LoginItem.isEnabled) }
     @objc private func openSettings() { onOpenSettings() }
 }

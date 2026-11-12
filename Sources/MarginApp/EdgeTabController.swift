@@ -6,6 +6,7 @@ import MarginCore
 final class TabEventView: NSView {
     var onPointer: ((Bool) -> Void)?
     var onClick: (() -> Void)?
+    var onPress: (() -> Void)?
     var onDragMoved: ((CGPoint) -> Void)?
     var onDragEnded: ((CGPoint) -> Void)?
     private var area: NSTrackingArea?
@@ -29,6 +30,7 @@ final class TabEventView: NSView {
     override func mouseDown(with event: NSEvent) {
         downAt = NSEvent.mouseLocation
         dragging = false
+        onPress?()
     }
 
     override func mouseDragged(with event: NSEvent) {
@@ -52,11 +54,11 @@ final class EdgeTabController {
     private let window = FloatingPanel()
     private let state = TabState()
     private let events = TabEventView()
-    private var panelOpen = false
     private var draggingTab = false
 
     var onPointer: ((Bool) -> Void)?
     var onClick: (() -> Void)?
+    var onPress: (() -> Void)?
     var onDragBegan: (() -> Void)?
 
     init(model: AppModel) {
@@ -71,11 +73,12 @@ final class EdgeTabController {
         hosting.frame = events.bounds
 
         events.onPointer = { [weak self] inside in
-            guard let self, !self.panelOpen else { return }
+            guard let self else { return }
             self.state.hovering = inside
             self.onPointer?(inside)
         }
         events.onClick = { [weak self] in self?.onClick?() }
+        events.onPress = { [weak self] in self?.onPress?() }
         events.onDragMoved = { [weak self] point in self?.dragMoved(to: point) }
         events.onDragEnded = { [weak self] point in self?.dragEnded(at: point) }
         refreshLayout()
@@ -91,10 +94,13 @@ final class EdgeTabController {
 
     var edge: ScreenEdge { Settings.tabPlacement.edge }
 
-    var screen: NSScreen {
-        // The primary display is the fallback when the saved display is not connected.
-        NSScreen.with(displayID: Settings.tabPlacement.displayID) ?? NSScreen.screens[0]
+    /// The display of the tab. The primary display is the fallback when the saved display is not connected.
+    var screen: NSScreen? {
+        NSScreen.with(displayID: Settings.tabPlacement.displayID) ?? NSScreen.screens.first
     }
+
+    /// The thickness of the tab now: the panel opens next to it.
+    var thickness: CGFloat { size().thickness }
 
     var tabFrame: CGRect { window.frame }
 
@@ -109,7 +115,7 @@ final class EdgeTabController {
         state.showDot = focus != nil && !Settings.showFocusOnTab
         let placement = Settings.tabPlacement
         state.edge = placement.edge
-        guard isEnabled else {
+        guard isEnabled, let screen else {
             window.orderOut(nil)
             return
         }
@@ -120,23 +126,6 @@ final class EdgeTabController {
             window.setFrame(frame, display: true, animate: animated && window.isVisible)
         }
         if !window.isVisible { window.orderFrontRegardless() }
-        applyPanelState()
-    }
-
-    /// The tab goes out of view while the panel is open next to it.
-    func setPanelOpen(_ open: Bool) {
-        panelOpen = open
-        if open { state.hovering = false }
-        applyPanelState()
-    }
-
-    private func applyPanelState() {
-        let hidden = panelOpen
-        window.ignoresMouseEvents = hidden
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.15
-            window.animator().alphaValue = hidden ? 0 : 1
-        }
     }
 
     // MARK: Drag to move
@@ -152,7 +141,7 @@ final class EdgeTabController {
 
     private func dragEnded(at point: CGPoint) {
         draggingTab = false
-        let target = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? screen
+        guard let target = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? screen else { return }
         Settings.tabPlacement = EdgeGeometry.snap(point: point, in: target.visibleFrame, displayID: target.displayID)
         refreshLayout(animated: true)
     }

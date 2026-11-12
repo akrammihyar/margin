@@ -61,7 +61,11 @@ struct TasksView: View {
                 .onKeyPress(.space) { act { model.toggleDone($0) } }
                 .onKeyPress(.return) { act { editing = $0.id } }
                 .onKeyPress(.delete) { act { model.remove($0) } }
-                .onKeyPress(.escape) { model.onRequestClose(); return .handled }
+                .onKeyPress(.escape) {
+                    guard editing == nil else { return .ignored }   // Esc first cancels an inline edit
+                    model.onRequestClose()
+                    return .handled
+                }
                 .accessibilityLabel("Tasks")
             }
 
@@ -86,7 +90,17 @@ struct TasksView: View {
                 .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
             }
         }
-        .onChange(of: model.focusRequest) { _, _ in addFocused = true }
+        .task(id: model.focusRequest) {
+            // Runs when the view appears and when a request arrives.
+            if model.focusPending {
+                model.focusPending = false
+                addFocused = true
+            }
+        }
+        .onChange(of: model.rows) { _, rows in
+            // The row in edit mode is gone (a different process changed the list).
+            if let id = editing, !rows.contains(where: { $0.id == id }) { editing = nil }
+        }
         .onChange(of: model.viewedDay) { _, _ in editing = nil; selected = nil }
     }
 

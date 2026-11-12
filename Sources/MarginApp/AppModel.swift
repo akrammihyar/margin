@@ -31,6 +31,13 @@ final class AppModel {
     var addDraft = ""
     /// Incremented to ask the Tasks view to put the cursor in the add field.
     var focusRequest = 0
+    /// True until the Tasks view has moved the cursor. The view can be created after the request.
+    @ObservationIgnored var focusPending = false
+
+    func requestAddFocus() {
+        focusPending = true
+        focusRequest += 1
+    }
 
     var noteDraft = ""
     @ObservationIgnored private var noteOnDisk = ""
@@ -161,7 +168,8 @@ final class AppModel {
         perform {
             guard case .number(let from) = try currentRef(row, on: viewedDay),
                   case .number(let to) = try currentRef(target, on: viewedDay) else { return }
-            try store.reorder(from, to: to, on: viewedDay)
+            // The dragged row goes to the place above the target row.
+            try store.reorder(from, to: from < to ? to - 1 : to, on: viewedDay)
         }
     }
 

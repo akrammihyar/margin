@@ -13,8 +13,8 @@ struct MCPTools {
         "description": "today, tomorrow, yesterday, or YYYY-MM-DD. Default: today.",
     ]
     private static let taskProp: [String: Any] = [
-        "type": ["integer", "string"],
-        "description": "The task number from list_tasks, or text that matches exactly one task of that day.",
+        "type": "string",
+        "description": "The task number from list_tasks (for example \"2\"), or text that matches exactly one task of that day.",
     ]
 
     private static func tool(_ name: String, _ description: String, _ props: [String: Any] = [:], required: [String] = []) -> [String: Any] {
