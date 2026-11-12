@@ -105,14 +105,14 @@ final class EdgeTabController {
     var tabFrame: CGRect { window.frame }
 
     private func size() -> (length: CGFloat, thickness: CGFloat) {
-        state.text == nil ? (TabMetrics.thinLength, TabMetrics.thinThickness) : (TabMetrics.length(for: state.text), TabMetrics.pillThickness)
+        TabMetrics.size(marks: state.marks.count, text: state.text)
     }
 
     /// Call after a display change, a focus task change, or a settings change.
     func refreshLayout(animated: Bool = false) {
         let focus = model.todayFocusText
         state.text = (focus != nil && Settings.showFocusOnTab) ? focus : nil
-        state.showDot = focus != nil && !Settings.showFocusOnTab
+        state.marks = model.todayMarks
         let placement = Settings.tabPlacement
         state.edge = placement.edge
         guard isEnabled, let screen else {

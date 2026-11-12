@@ -23,6 +23,8 @@ final class AppModel {
     var viewedDay: DayID
     var rows: [TaskRowData] = []
     var todayFocusText: String?
+    /// One mark for each open or completed task of today, for the edge tab.
+    var todayMarks: [TabMark] = []
     var reviewDay: DayID?
     var reviewRows: [TaskRowData] = []
     var lastError: String?
@@ -74,6 +76,13 @@ final class AppModel {
             rows = taskRows(of: viewedDay) { $0.state == .open || $0.state == .done }
             let todayTasks = (try? store.load(today).tasks) ?? []
             todayFocusText = todayTasks.first(where: { $0.isFocus && $0.state == .open })?.text
+            todayMarks = todayTasks.compactMap { task in
+                switch task.state {
+                case .done: return .done
+                case .open: return task.isFocus ? .focus : .open
+                case .archived, .moved: return nil
+                }
+            }
             reviewDay = try? store.reviewDay(before: today)
             reviewRows = reviewDay.map { day in taskRows(of: day) { $0.state == .open } } ?? []
         }

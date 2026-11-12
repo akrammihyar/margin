@@ -35,7 +35,7 @@ SwiftUI views ◄─ AppModel.reload() ◄─ DirectoryWatcher (FSEvents)
 
 | Window | Class | Notes |
 |---|---|---|
-| Edge tab | `FloatingPanel` + `TabEventView` | Borderless, cannot become key. `TabEventView` handles hover, click, and drag. |
+| Edge tab | `FloatingPanel` + `TabEventView` | Borderless, cannot become key. `TabEventView` handles hover, click, and drag. `EdgeTabView` draws one pen mark for each task of today (`AppModel.todayMarks`); `TabMetrics` holds its sizes and colours. |
 | Panel | `FloatingPanel` + `TrackingHostingView` | Borderless, non-activating, can become key for typing. The SwiftUI content has 20 pt of transparent space around the glass. |
 | Settings | `NSWindow` | A normal window. The app activates only for this window. |
 

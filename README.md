@@ -4,7 +4,7 @@ Margin is a small native macOS app that keeps the task list of the day at the ed
 screen. Touch the edge tab, or press a shortcut, and the list opens. Pin it and it stays
 above all your windows. Your AI agents can read and change the same list.
 
-- **Always near.** A thin tab on any screen edge. The list opens on hover, on click, or with a global shortcut.
+- **Always near.** Small pen marks on any screen edge, one for each task of today: orange is completed, grey is open. The list opens on hover, on click, or with a global shortcut.
 - **Fast capture.** Shortcut, type, Enter, Esc. Your current app stays active.
 - **One list for each day.** A new day starts empty. Margin shows the open tasks of the last day, and you add, archive, or delete each one.
 - **Focus task.** Mark one task as "now". The tab shows its name.
@@ -16,18 +16,28 @@ above all your windows. Your AI agents can read and change the same list.
 ## Requirements
 
 - macOS 26 or later, Apple silicon.
-- To build: Xcode 26, or only the Command Line Tools for Xcode 26.
+- To build: Xcode 26, or only the Command Line Tools for Xcode 26
+  (`xcode-select --install`). Full Xcode is not necessary.
 
 ## Install
 
+There is no download at this time. You build Margin on your own Mac. This takes
+approximately one minute.
+
 ```
-git clone <this repository>
+git clone https://github.com/akrammihyar/margin.git
 cd margin
 scripts/install.sh
 ```
 
 The script builds `Margin.app`, puts it in `/Applications`, and starts it. The build is
-signed ad hoc for your own Mac.
+signed ad hoc for your own Mac, so macOS does not show a Gatekeeper warning.
+
+To update: `git pull`, then `scripts/install.sh` again. Your tasks are not changed.
+
+To remove: quit Margin, delete `/Applications/Margin.app`, and delete the link
+(`rm ~/.local/bin/margin` or `/usr/local/bin/margin`). Your tasks stay in `~/Margin`
+until you delete that folder.
 
 Then open **Settings** from the menu bar icon (right-click → Settings…):
 
@@ -38,7 +48,7 @@ Then open **Settings** from the menu bar icon (right-click → Settings…):
 
 | To do this | Do this |
 |---|---|
-| Open the list | Rest the pointer on the edge tab, click the tab, click the menu bar icon, or press **Control + Option + M** |
+| Open the list | Rest the pointer on the marks at the screen edge, click them, click the menu bar icon, or press **Control + Option + M** |
 | Add a task | Type in "Add a task" and press Enter |
 | Complete a task | Click it |
 | Edit a task | Point at it and click the pencil, or right-click → Edit |
@@ -109,6 +119,40 @@ tomorrow", or "What did I complete this week?".
 | Codex (command line and desktop app) | Registered through MCP with `codex mcp add`. Both use the same Codex configuration. |
 | Other local agents with shell or file access | Use the `margin` command, or point the agent at `~/Margin/AGENTS.md`. No documented local MCP setting was found for them. |
 
+## Customize
+
+### Without code
+
+| What | Where |
+|---|---|
+| Shortcut | Settings → Shortcut: click, then press the new combination |
+| Tab position | Drag the tab to any edge of any display |
+| Tab on or off | Settings → Show edge tab, or right-click the menu bar icon |
+| Focus task name on the tab | Settings → Show focus task on the tab |
+| Completion sound | Settings → Completion sound |
+| Start at login | Settings → Start at login |
+| Data folder | Set the environment variable `MARGIN_HOME` |
+| Instructions for agents | Edit `~/Margin/AGENTS.md`. Margin does not overwrite a file that you edited. |
+
+### With a small code change
+
+Each of these is a constant in one file. Change the value and run `scripts/install.sh`.
+
+| What | File | Constant |
+|---|---|---|
+| Colour of the tab | `Sources/MarginApp/EdgeTabView.swift` | `TabMetrics.orange` |
+| Size, tilt, and number of the pen marks | `Sources/MarginApp/EdgeTabView.swift` | `TabMetrics.markThickness`, `markLengths`, `markTilt`, `maxMarks` |
+| Distance of the tab from the screen edge | `Sources/MarginApp/EdgeTabView.swift` | `TabMetrics.inset` |
+| Panel width and corner radius | `Sources/MarginApp/Views/PanelView.swift` | `PanelMetrics.width`, `PanelMetrics.corner` |
+| Hover delays (open 0.15 s, close 0.30 s) | `Sources/MarginApp/HoverCoordinator.swift` | `openDelay`, `closeDelay` |
+| Completion sound and volume | `Sources/MarginApp/CompletionSound.swift` | the sound name (`Tink`) and `volume` |
+| Default shortcut | `Sources/MarginApp/Settings.swift` | `hotKeyCode`, `hotKeyModifiers`, `hotKeyDisplay` |
+| Default data folder | `Sources/MarginCore/Store.swift` | `Store.defaultRoot()` |
+| App name | `Sources/MarginCore/AppInfo.swift` and `Resources/Info.plist` | `AppInfo.name` |
+
+For a larger change, read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). It has a worked
+example of a new feature.
+
 ## Data
 
 All data is in `~/Margin` (set `MARGIN_HOME` to use a different folder). The format is in
@@ -118,16 +162,15 @@ with any tool.
 ## Resource use
 
 Measured on 2026-11-12 with `scripts/measure.sh` on an Apple silicon MacBook with macOS 26.3
-(release build, 20 tasks today, 90 days of history, panel closed, tab visible, 5 minutes idle).
-The screen was locked during this measurement.
+(release build, 20 tasks today, 90 days of history, panel closed, tab visible, screen on, 5 minutes idle).
 
 | Measure | Result | Limit |
 |---|---|---|
 | Idle CPU (average) | 0.000 % | 0.1 % |
 | Idle wake-ups | 0.00 per second | approximately 0 |
-| Memory footprint | 26 MB | 50 MB |
-| Launch to ready | 151 ms | 500 ms |
-| App size | 2.3 MB | 15 MB |
+| Memory footprint | 25 MB | 50 MB |
+| Launch to ready | 152 ms | 500 ms |
+| App size | 2.4 MB | 15 MB |
 
 Run `scripts/measure.sh` to measure on your own Mac.
 
@@ -141,7 +184,7 @@ Run `scripts/measure.sh` to measure on your own Mac.
 
 ## Roadmap
 
-Not in version 1, and possible later: a task count on the tab, import from Notion, sync to
+Possible later: import from Notion, sync to
 iPhone, due times and reminders, a signed and notarized download.
 
 ## Licence
